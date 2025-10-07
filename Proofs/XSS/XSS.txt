@@ -1,0 +1,3 @@
+Stored XSS:
+
+	- On XSS Stored page: input <script>alert('xss')</				script>, submit, then load the page to show alert.
