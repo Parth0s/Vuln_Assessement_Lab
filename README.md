@@ -13,12 +13,21 @@ This project documents a controlled vulnerability assessment performed in a lab 
 ## Tools Used
 - **Nmap** — network & service discovery  
 - **Nikto** — web server scanning  
-- **Browser / DVWA UI** — manual XSS demonstration
+- **Burp Suite** — proxy / manual testing & Intruder  
+- **sql Injection** — optional automated SQLi enumeration  
+- **Browser / DVWA UI** — manual XSS / SQLi demonstration
 
 ## What’s included
-- `evidence/` — raw scan outputs and screenshots  
-- `scripts/` — simple scan scripts to reproduce results  
+- `proofs/` — raw scan outputs and screenshots  
 - `REPORT_Vulnerability_Assessment.pdf` — full report with findings and remediation
+
+---
+
+## Quick reproduction
+1. Start DVWA (Docker or manual).  
+2. Run Nmap:
+```bash
+./scripts/nmap_scan.sh 127.0.0.1
 
 ---
 
@@ -82,6 +91,18 @@ docker logs <container_id_or_name>
 
 ---
 
+## Burp capture (localhost gotchas)
+
+If Burp is not capturing requests to http://127.0.0.1:8080, this is a common browser/localhost proxy issue. Try one of these fixes:
+
+Use a hostname instead of localhost (recommended):
+```bash
+sudo sh -c "echo '127.0.0.1 dvwa.local' >> /etc/hosts"
+# then browse: http://dvwa.local:8080
+```
+This prevents browsers from bypassing the proxy for localhost.
+
+
 ## Troubleshooting
 - **Port already in use:** If `127.0.0.1:8080` is occupied, stop the service using that port or change the mapping (e.g., `-p 127.0.0.1:9090:80`).  
 - **Database errors:** Use the DVWA UI `Create / Reset Database` button. If that fails, check container logs (`docker logs <container_id_or_name>`).  
@@ -89,6 +110,32 @@ docker logs <container_id_or_name>
 - **Persistent storage:** The `vulnerables/web-dvwa` image is ephemeral. If you want to persist changes, mount a host volume to `/var/www/html` in the container.
 
 ---
+## SQL Injection assessment (DVWA) — summary & steps
+
+Target: http://dvwa.local:8080/vulnerabilities/sqli/
+Parameter: id (GET)
+
+**Quick manual steps (Burp Repeater):**
+
+Intercept a sample request in Burp Proxy (submit id=1 from DVWA).
+
+Right-click → Send to Repeater. Use Repeater to test payloads (one at a time) and click Go to observe responses.
+
+**Payloads to test (manual)**
+
+`1' OR '1'='1`— boolean true test (should return more rows)
+
+`1' `— error-based test (may reveal DB error)
+
+`1' UNION SELECT NULL--` - then increase NULL count until no error — to find UNION column count
+
+`1' OR SLEEP(5)-- -` — time-based test (response delayed ~5s)
+
+**Intruder workflow (optional):**
+
+Send the request to Intruder, mark id as position, use Sniper with a small SQL payload list, run and look for differences in Response Length / Time.
+
+**YOU CAN CHECK PROOF/SQLI FOLDER FOR THE SCREENSHOTS**
 
 ## Notes & Disclaimer
 This repository is for educational purposes only. Do not use these techniques on systems you do not own or do not have explicit permission to test.
