@@ -25,7 +25,16 @@
 - **Evidence:** `evidence/screenshots/xss_alert.png`, Burp saved request.  
 - **Risk:** Medium–High (session theft, phishing).  
 - **Recommendation:** Implement proper output encoding & input validation; set Content Security Policy (CSP).
-
+  
+**Finding D — SQL Injection (SQLi)**
+* **What:** The User ID input field on the `/vulnerabilities/sqli/` page is critically vulnerable to **Boolean-based** and **Union-based SQL Injection**. This allows an attacker to bypass authentication and retrieve all sensitive data from the database.
+* **Evidence:**
+    * **Authentication Bypass:** The payload `1' OR '1'='1` successfully bypassed the filter, proving the query logic was flawed and returning all user records, including the `admin` user.
+    * **Exploit Trace:** Burp Suite Intruder analysis confirmed distinct response lengths for valid vs. invalid queries, validating the vulnerability for automation.
+* **Risk:** **Critical** (Full database compromise, authentication bypass, data exfiltration).
+* **Recommendation:**
+    * **Use Parameterized Queries (Prepared Statements):** This is the industry-standard fix. It ensures that user input is always treated as data and cannot be executed as SQL code.
+    * **Implement Strict Input Validation:** Since the field expects an ID, enforce a **whitelist** of numeric characters and explicitly cast the input as an integer at the application level.
 ---
 
 **Nmap:**
